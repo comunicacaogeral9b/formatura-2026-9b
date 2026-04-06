@@ -7,27 +7,27 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
   const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, loginWithCode } = useAuth();
 
   useEffect(() => {
-    if (user && profile) {
-      if (profile.className) {
-        navigate('/');
-      } else {
-        // Automatically set to 9°B if no class is set
-        updateProfile({ className: '9°B' }).catch(console.error);
-      }
+    if (user && profile?.className) {
+      navigate('/');
     }
-  }, [user, profile, navigate, updateProfile]);
+  }, [user, profile, navigate]);
 
-  const handleGoogleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code) return;
+
     setLoading(true);
-    const provider = new GoogleAuthProvider();
+    setError('');
     try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error(err);
+      await loginWithCode(code);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao entrar. Verifique o código.');
     } finally {
       setLoading(false);
     }
@@ -58,24 +58,41 @@ export function Login() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full bg-white text-blue-900 font-bold py-4 rounded-2xl border border-blue-100 shadow-lg flex items-center justify-center gap-3 hover:bg-blue-50 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-900"></div>
-            ) : (
-              <>
-                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-                Entrar com Google
-              </>
-            )}
-          </button>
-          <p className="text-center text-[11px] text-blue-300 font-semibold uppercase tracking-widest">
-            Acesso restrito e seguro
-          </p>
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-blue-100 space-y-6">
+          <div className="text-center space-y-1">
+            <h2 className="text-lg font-bold text-blue-900">Código de Convite</h2>
+            <p className="text-xs text-blue-400">Insira o código para acessar o portal</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <input 
+                type="text"
+                placeholder="Digite seu código"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="w-full p-4 rounded-2xl bg-blue-50 border-2 border-transparent focus:border-[#004d4d] outline-none text-center font-black text-xl tracking-widest text-[#004d4d] transition-all"
+                maxLength={10}
+              />
+              {error && (
+                <p className="text-[10px] text-red-500 font-bold text-center uppercase tracking-wider">
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !code}
+              className="w-full bg-[#004d4d] text-white font-bold py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 hover:bg-[#003d3d] active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              ) : (
+                <>Entrar no Portal</>
+              )}
+            </button>
+          </form>
         </div>
 
         <div className="pt-8 text-center">

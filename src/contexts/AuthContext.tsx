@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously, signOut, User } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { UserProfile, UserRole } from '../types';
@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   logout: () => Promise<void>;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  loginWithCode: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,13 +19,16 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   logout: async () => {},
-  updateProfile: async () => {},
+  loginWithCode: async () => {},
 });
 
-const ADMIN_EMAIL = 'mayaramonteiro.lisboa@gmail.com';
+const CODES = {
+  ADMIN: 'ADM9B',
+  STUDENT: 'TURMA9B'
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,16 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubProfile = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
-      } else {
-        const role: UserRole = user.email === ADMIN_EMAIL ? 'admin' : 'user';
-        const newProfile: UserProfile = {
-          uid: user.uid,
-          email: user.email || '',
-          role,
-          className: '9°B' // Default to 9°B
-        };
-        setDoc(userDocRef, newProfile).catch(console.error);
-        setProfile(newProfile);
       }
       setLoading(false);
     }, (error) => {
@@ -67,25 +60,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubProfile;
   }, [user]);
 
-  const isAdmin = profile?.role === 'admin' || user?.email === ADMIN_EMAIL;
+  const isAdmin = profile?.role === 'admin';
 
   const logout = async () => {
     try {
-      await auth.signOut();
+      await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
-    if (user) {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, data, { merge: true });
+  const loginWithCode = async (code: string) => {
+    const upperCode = code.toUpperCase();
+    let role: UserRole | null = null;
+
+    if (upperCode === CODES.ADMIN) role = 'admin';
+    else if (upperCode === CODES.STUDENT) role = 'user';
+
+    if (!role) {
+      throw new Error('Código inválido');
     }
+
+    const { user: anonUser } = await signInAnonymously(auth);
+    const userDocRef = doc(db, 'users', anonUser.uid);
+    
+    const newProfile: UserProfile = {
+      uid: anonUser.uid,
+      email: 'anonimo@formatura.com',
+      role,
+      className: '9°B'
+    };
+
+    await setDoc(userDocRef, newProfile);
+    setProfile(newProfile);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, logout, loginWithCode }}>
       {children}
     </AuthContext.Provider>
   );
