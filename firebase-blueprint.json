@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["email", "role"]
+    },
+    "finance": {
+      "title": "Finance Summary",
+      "description": "Summary of graduation finances",
+      "type": "object",
+      "properties": {
+        "totalSales": { "type": "number" },
+        "totalExpenses": { "type": "number" },
+        "studentContribution": { "type": "number" }
+      }
+    },
+    "event": {
+      "title": "Event",
+      "description": "Graduation event details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmado", "em breve", "cancelado"] }
+      },
+      "required": ["name", "date", "time", "location", "status"]
+    },
+    "product": {
+      "title": "Product",
+      "description": "Store product/stock item",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" },
+        "type": { "type": "string", "enum": ["venda", "despesa"] }
+      },
+      "required": ["name", "quantity", "price", "type"]
+    },
+    "notice": {
+      "title": "Notice",
+      "description": "Recent announcements",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["content", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User roles and profiles"
+    },
+    "/finance/summary": {
+      "schema": "finance",
+      "description": "Global financial summary"
+    },
+    "/events/{eventId}": {
+      "schema": "event",
+      "description": "List of graduation events"
+    },
+    "/store/{productId}": {
+      "schema": "product",
+      "description": "Inventory and transactions"
+    },
+    "/notices/{noticeId}": {
+      "schema": "notice",
+      "description": "Recent announcements"
+    }
+  }
+}

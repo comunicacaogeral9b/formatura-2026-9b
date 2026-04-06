@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Document ID: uid
+    // Fields: email (string), role (string: 'admin'|'user')
+    //
+    // Collection: finance
+    // Document ID: summary
+    // Fields: totalSales (number), totalExpenses (number), studentContribution (number)
+    //
+    // Collection: events
+    // Document ID: auto-generated
+    // Fields: name (string), date (string), time (string), location (string), status (string)
+    //
+    // Collection: store
+    // Document ID: auto-generated
+    // Fields: name (string), quantity (number), price (number), type (string)
+    //
+    // Collection: notices
+    // Document ID: auto-generated
+    // Fields: content (string), date (string)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "mayaramonteiro.lisboa@gmail.com" ||
+         request.auth.token.email == "comunicacaogeral9b@gmail.com");
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Rules for Users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) || isAdmin();
+    }
+
+    // Rules for Classes
+    match /classes/{className} {
+      // Helper for class access
+      function canAccessClass() {
+        return isAuthenticated() && (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.className == className) || 
+          isAdmin()
+        );
+      }
+
+      match /finance/summary {
+        allow read: if canAccessClass();
+        allow write: if isAdmin();
+      }
+
+      match /events/{eventId} {
+        allow read: if canAccessClass();
+        allow write: if isAdmin();
+      }
+
+      match /store/{productId} {
+        allow read: if canAccessClass();
+        allow write: if isAdmin();
+      }
+
+      match /notices/{noticeId} {
+        allow read: if canAccessClass();
+        allow write: if isAdmin();
+      }
+    }
+  }
+}
