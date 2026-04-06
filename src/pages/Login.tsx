@@ -27,7 +27,11 @@ export function Login() {
     try {
       await loginWithCode(code);
     } catch (err: any) {
-      setError(err.message || 'Erro ao entrar. Verifique o código.');
+      if (err.message?.includes('auth/admin-restricted-operation')) {
+        setError('A autenticação anônima não está ativada no Console do Firebase. Ative-a em Authentication > Sign-in method.');
+      } else {
+        setError(err.message || 'Erro ao entrar. Verifique o código.');
+      }
     } finally {
       setLoading(false);
     }
